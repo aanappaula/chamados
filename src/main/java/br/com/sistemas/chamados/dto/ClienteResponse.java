@@ -9,6 +9,6 @@ public record ClienteResponse(
     String telefone
 ) {
     public static ClienteResponse de(Cliente c) {
-        this(c.getId(), c.getNome(), c.getEmail(), c.getTelefone());
+        return new ClienteResponse(c.getId(), c.getNome(), c.getEmail(), c.getTelefone());
     }
 }
