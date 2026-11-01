@@ -9,6 +9,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import br.com.sistemas.chamados.entity.Categoria;
 import br.com.sistemas.chamados.entity.Chamado;
 import br.com.sistemas.chamados.entity.Cliente;
+import br.com.sistemas.chamados.entity.Comentario;
 import br.com.sistemas.chamados.entity.Perfil;
 import br.com.sistemas.chamados.entity.Prioridade;
 import br.com.sistemas.chamados.entity.StatusChamado;
@@ -66,5 +67,25 @@ class ChamadoRepositoryTest {
         assertThat(chamado.getTecnico()).isNull();
         assertThat(chamado.getStatus()).isEqualTo(StatusChamado.ABERTO);
         assertThat(chamado.getDataAbertura()).isNotNull();
+    }
+
+    @Test
+    void persisteComentarioAssociadoAoChamadoComDataAutomatica() {
+        Cliente cliente = clienteRepository.save(new Cliente("Ana", "ana3@example.com", "47999990000"));
+        Categoria categoria = categoriaRepository.save(new Categoria("Rede", "Rede interna"));
+        Chamado chamado = chamadoRepository.saveAndFlush(
+                new Chamado("Sem conexão", null, Prioridade.ALTA, cliente, categoria, null));
+        chamado.adicionarComentario(new Comentario("Estamos verificando.", "Ana Souza"));
+        chamadoRepository.saveAndFlush(chamado);
+
+        Long chamadoId = chamado.getId();
+        entityManager.clear();
+
+        Chamado carregado = chamadoRepository.findById(chamadoId).orElseThrow();
+
+        assertThat(carregado.getComentarios()).hasSize(1);
+        assertThat(carregado.getComentarios().get(0).getTexto()).isEqualTo("Estamos verificando.");
+        assertThat(carregado.getComentarios().get(0).getAutor()).isEqualTo("Ana Souza");
+        assertThat(carregado.getComentarios().get(0).getData()).isNotNull();
     }
 }

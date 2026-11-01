@@ -26,9 +26,10 @@ Atualmente, a API possui operações de cadastro, consulta, atualização e excl
 - **Clientes:** nome, e-mail e telefone.
 - **Categorias:** nome e descrição, com validação e prevenção de nomes duplicados sem diferenciar maiúsculas de minúsculas.
 - **Técnicos:** nome, e-mail e perfil (`ADMIN` ou `TECNICO`), com validação e prevenção de e-mails duplicados.
-- **Chamados:** título, descrição, datas de abertura/fechamento, prioridade, status e relacionamentos com cliente, categoria e técnico. O status inicial (`ABERTO`) e a data de abertura são definidos automaticamente.
+- **Chamados:** título, descrição, datas de abertura/fechamento, prioridade, status e relacionamentos com cliente, categoria e técnico. O status inicial (`ABERTO`) e a data de abertura são definidos automaticamente. Chamados fechados não podem ser atualizados, reatribuídos ou ter o status alterado.
+- **Comentários:** texto, autor e data associados ao chamado; a data é preenchida automaticamente e os comentários aparecem no detalhe do chamado.
 
-Esta etapa contempla apenas o CRUD base de Chamados. Rotas para atribuição e alteração de status, filtros, paginação, comentários e histórico serão implementados em etapas posteriores.
+Chamados podem ser filtrados por status, prioridade e cliente. As listagens são paginadas e, por padrão, ordenadas pela data de abertura em ordem decrescente. O fluxo de status permite qualquer mudança antes do fechamento; depois de fechado, o chamado permanece imutável pelas operações de atualização, atribuição e status.
 
 ## Executar localmente
 
@@ -60,20 +61,25 @@ No Windows Command Prompt:
 mvnw.cmd test
 ```
 
-Os testes de persistência de Chamados utilizam H2 e verificam os relacionamentos com Cliente, Categoria e Técnico, além dos valores iniciais de status e data de abertura.
+Os testes de Repository utilizam H2 para verificar relacionamentos, estado inicial e persistência de comentários. Os testes de Controller usam `@WebMvcTest` para validar rotas, paginação, respostas de validação e erros HTTP.
 
 ## Endpoints
 
 Todos os recursos abaixo oferecem as operações indicadas:
 
-| Recurso | Criar | Listar | Consultar por ID | Atualizar | Excluir |
+| Recurso | Criar | Listar | Consultar por ID | Atualizar | Ações | Excluir |
 |---|---|---|---|---|---|
-| Clientes | `POST /clientes` | `GET /clientes` | `GET /clientes/{id}` | `PUT /clientes/{id}` | `DELETE /clientes/{id}` |
-| Categorias | `POST /categorias` | `GET /categorias` | `GET /categorias/{id}` | `PUT /categorias/{id}` | `DELETE /categorias/{id}` |
-| Técnicos | `POST /tecnicos` | `GET /tecnicos` | `GET /tecnicos/{id}` | `PUT /tecnicos/{id}` | `DELETE /tecnicos/{id}` |
-| Chamados | `POST /chamados` | `GET /chamados` | `GET /chamados/{id}` | `PUT /chamados/{id}` | `DELETE /chamados/{id}` |
+| Clientes | `POST /clientes` | `GET /clientes` | `GET /clientes/{id}` | `PUT /clientes/{id}` | — | `DELETE /clientes/{id}` |
+| Categorias | `POST /categorias` | `GET /categorias` | `GET /categorias/{id}` | `PUT /categorias/{id}` | — | `DELETE /categorias/{id}` |
+| Técnicos | `POST /tecnicos` | `GET /tecnicos` | `GET /tecnicos/{id}` | `PUT /tecnicos/{id}` | — | `DELETE /tecnicos/{id}` |
+| Chamados | `POST /chamados` | `GET /chamados` | `GET /chamados/{id}` | `PUT /chamados/{id}` | `PATCH /chamados/{id}/atribuir`, `PATCH /chamados/{id}/status`, `POST /chamados/{id}/comentarios` | `DELETE /chamados/{id}` |
 
 As operações `POST` e `PUT` recebem JSON e devem ser enviadas com o cabeçalho `Content-Type: application/json`.
+`GET /chamados` aceita `status`, `prioridade` e `clienteId`, além dos parâmetros de paginação `page`, `size` e `sort`. Exemplo: `GET /chamados?status=ABERTO&prioridade=ALTA&clienteId=1&page=0&size=10&sort=dataAbertura,desc`. A rota `GET /clientes/{id}/chamados` lista os chamados do cliente com paginação e ordenação.
+
+Para atribuir um técnico, envie `{"tecnicoId": 1}` para `PATCH /chamados/{id}/atribuir`. Para mudar o status, envie `{"status": "EM_ATENDIMENTO"}` para `PATCH /chamados/{id}/status`. Ao fechar, o sistema preenche `dataFechamento`; chamados fechados não podem ser reabertos, alterados ou reatribuídos.
+
+Para adicionar comentário, envie `{"texto": "Estamos verificando.", "autor": "Ana Souza"}` para `POST /chamados/{id}/comentarios`. Os comentários são listados no retorno de `GET /chamados/{id}`.
 
 ### Exemplos de criação
 
