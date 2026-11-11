@@ -17,6 +17,9 @@ Projeto acadêmico para desenvolvimento incremental de uma API REST de gerenciam
 - Bean Validation
 - Maven Wrapper
 - H2 Database
+- React
+- TypeScript
+- Vite
 
 ## Funcionalidades disponíveis
 
@@ -45,6 +48,28 @@ mvnw.cmd spring-boot:run
 ```
 
 Por padrão, a API fica disponível em `http://localhost:8080`. Para interromper a aplicação, pressione `Ctrl+C` no terminal em que ela está rodando.
+
+## Executar o frontend
+
+Com o backend em execução, abra outro terminal na raiz do repositório e instale as dependências:
+
+```powershell
+npm --prefix frontend install
+```
+
+Inicie a interface:
+
+```powershell
+npm --prefix frontend run dev
+```
+
+O Vite informa no terminal o endereço local do frontend (normalmente `http://localhost:5173`). Durante o desenvolvimento, as requisições para `/api` são encaminhadas para o backend em `http://localhost:8080`. Para alterar o destino do proxy, configure `VITE_API_PROXY_TARGET` no arquivo `frontend/.env`.
+
+Para validar a versão de produção:
+
+```powershell
+npm --prefix frontend run build
+```
 
 ## Executar os testes
 
