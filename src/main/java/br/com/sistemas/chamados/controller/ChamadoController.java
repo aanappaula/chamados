@@ -3,6 +3,7 @@ package br.com.sistemas.chamados.controller;
 import java.net.URI;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.web.PageableDefault;
@@ -33,6 +34,8 @@ import jakarta.validation.Valid;
 @RequestMapping("/chamados")
 public class ChamadoController {
 
+    private static final int TAMANHO_MAXIMO_PAGINA = 100;
+
     private final ChamadoService service;
 
     public ChamadoController(ChamadoService service) {
@@ -51,7 +54,11 @@ public class ChamadoController {
             @RequestParam(required = false) Prioridade prioridade,
             @RequestParam(required = false) Long clienteId,
             @PageableDefault(size = 20, sort = "dataAbertura", direction = Direction.DESC) Pageable pageable) {
-        return service.listar(status, prioridade, clienteId, pageable);
+        Pageable pageableLimitado = PageRequest.of(
+                pageable.getPageNumber(),
+                Math.min(pageable.getPageSize(), TAMANHO_MAXIMO_PAGINA),
+                pageable.getSort());
+        return service.listar(status, prioridade, clienteId, pageableLimitado);
     }
 
     @GetMapping("/{id}")
