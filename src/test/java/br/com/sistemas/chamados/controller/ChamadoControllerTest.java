@@ -2,8 +2,11 @@ package br.com.sistemas.chamados.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,11 +17,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
@@ -130,6 +136,57 @@ class ChamadoControllerTest {
                 .andExpect(jsonPath("$.size").value(5));
 
         verify(service).listar(eq(StatusChamado.ABERTO), eq(Prioridade.ALTA), eq(1L), any());
+    }
+
+    @Test
+    void getListaLimitaPaginasMaioresQue100PreservandoPaginaFiltrosEOrdenacao() throws Exception {
+        when(service.listar(
+                eq(StatusChamado.ABERTO),
+                eq(Prioridade.ALTA),
+                eq(1L),
+                any())).thenAnswer(invocation -> new PageImpl<>(
+                        List.of(),
+                        invocation.getArgument(3),
+                        0));
+
+        mockMvc.perform(get("/chamados")
+                .param("status", "ABERTO")
+                .param("prioridade", "ALTA")
+                .param("clienteId", "1")
+                .param("page", "2")
+                .param("size", "1000")
+                .param("sort", "prioridade,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(100))
+                .andExpect(jsonPath("$.number").value(2));
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(service).listar(
+                eq(StatusChamado.ABERTO),
+                eq(Prioridade.ALTA),
+                eq(1L),
+                pageableCaptor.capture());
+        assertThat(pageableCaptor.getValue())
+                .isEqualTo(PageRequest.of(2, 100, Sort.by(Sort.Direction.ASC, "prioridade")));
+    }
+
+    @Test
+    void getListaRespeitaTamanhosDePaginaAte100() throws Exception {
+        when(service.listar(isNull(), isNull(), isNull(), any()))
+                .thenAnswer(invocation -> new PageImpl<>(
+                        List.of(),
+                        invocation.getArgument(3),
+                        0));
+
+        for (int pageSize : List.of(20, 100)) {
+            mockMvc.perform(get("/chamados")
+                    .param("page", "0")
+                    .param("size", Integer.toString(pageSize)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.size").value(pageSize));
+        }
+
+        verify(service, times(2)).listar(isNull(), isNull(), isNull(), any());
     }
 
     @Test
